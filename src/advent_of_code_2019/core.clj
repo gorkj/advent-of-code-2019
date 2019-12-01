@@ -1,7 +1,21 @@
 (ns advent-of-code-2019.core
+  (:require [clojure.java.io :as io])
   (:gen-class))
 
+(defn calc-fuel
+  [mass]
+  (- (quot mass 3) 2)
+  )
+
 (defn -main
-  "I don't do a whole lot ... yet."
+  "Runs all the problems sequentially"
   [& args]
-  (println "Hello, World!"))
+  (print "Day 1a: ")
+  (println
+   (->> (io/resource "day-1.csv")
+        io/reader
+        line-seq
+        (map #(Integer/parseInt %))
+        (map calc-fuel)
+        (reduce +)
+        )))
