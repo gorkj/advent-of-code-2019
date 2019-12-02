@@ -19,6 +19,11 @@
       (reduce +)))
 
 
+(defn get-int-program
+  []
+  (mapv #(Integer/parseInt %)
+        (str/split (slurp (io/resource "day-2")) #"," ))
+  )
 (defn intcomp
   "Run program specified in memory"
   ([memory]
@@ -32,6 +37,13 @@
                             99 memory
                             "error")))
      memory)))
+
+(defn intcomp2 [memory noun verb]
+  "Run program with specified parameters"
+  (-> (get-int-program)
+      (assoc 1 noun)
+      (assoc 2 verb)
+      (intcomp)))
 
 (defn -main
   "Runs all the problems sequentially"
@@ -53,10 +65,18 @@
   (print "Day 2a: ")
   (println
    (first
-    (-> (mapv #(Integer/parseInt %)
-              (str/split (slurp (io/resource "day-2")) #"," ))
+    (-> (get-int-program)
         (assoc 1 12)
         (assoc 2 2)
         (intcomp)
         )))
+  (print "Day 2b: ")
+  (println
+   (first
+    (let [memory (get-int-program)]
+      (for [x (range 100)
+            y (range 100)
+            :let [r (first (intcomp2 memory x y))]
+            :when (= r 19690720)]
+        [x y]))))
   )
