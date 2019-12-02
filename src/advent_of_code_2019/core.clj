@@ -1,5 +1,6 @@
 (ns advent-of-code-2019.core
-  (:require [clojure.java.io :as io])
+  (:require [clojure.java.io :as io]
+            [clojure.string :as str])
   (:gen-class))
 
 (defn calc-fuel
@@ -16,6 +17,21 @@
       (drop 1)
       (take-while #(not= 0 %))
       (reduce +)))
+
+
+(defn intcomp
+  "Run program specified in memory"
+  ([memory]
+   (intcomp 0 memory))
+  ([index memory]
+   (if (< index (quot (count memory) 4))
+     (let [[op x y loc] (nth (partition 4 memory) index)]
+       (recur (inc index) (case op
+                            1 (assoc memory loc (+ (nth memory x) (nth memory y)))
+                            2 (assoc memory loc (* (nth memory x) (nth memory y)))
+                            99 memory
+                            "error")))
+     memory)))
 
 (defn -main
   "Runs all the problems sequentially"
@@ -34,4 +50,13 @@
                 (map #(Integer/parseInt %))
                 (map calc-fuel-with-fuel)
                 (reduce +)))
+  (print "Day 2a: ")
+  (println
+   (first
+    (-> (mapv #(Integer/parseInt %)
+              (str/split (slurp (io/resource "day-2")) #"," ))
+        (assoc 1 12)
+        (assoc 2 2)
+        (intcomp)
+        )))
   )
