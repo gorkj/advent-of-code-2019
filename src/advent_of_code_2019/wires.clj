@@ -4,15 +4,59 @@
             [clojure.pprint :refer [pprint]])
   )
 
-(def arr2d (make-array Integer/TYPE 50 50))
+(def state {:arr (vec (repeat 10 (vec (repeat 11 0))))
+            :x 0
+            :y 0})
 
-(defn prnarr2d [arr2d]
-  (doseq [row arr2d]
-    (doseq [a row]
-      (print (str a " ")))
-    (println)
-    ))
+(defn pos [state x y]
+  (-> state
+      (assoc :x x)
+      (assoc :y y)))
 
-(prnarr2d arr2d)
+(defn view [state]
+  (println)
+  (let [arr (:arr state)
+        xpos (:x state)
+        ypos (:y state)]
+    (doseq [[y row] (map-indexed vector arr)]
+      (doseq [[x value] (map-indexed vector row)]
+        (let [c (if (and (= x xpos) (= y ypos)) "X"
+                    (if (zero? value) "." value))]
+          (print (str c " ")))
+        )
+      (println))))
+
+(defn m
+  ([state num dir cnt]
+   (if (zero? cnt)
+     state
+     (recur (m state num dir) num dir (dec cnt))))
+  ([state num dir]
+   (let [{:keys [x y]} state]
+     (-> (case dir
+           :up (assoc state :y (dec y))
+           :right (assoc state :x (inc x))
+           :down (assoc state :y (inc y))
+           :left (assoc state :x (dec x)))
+         (update-in [:arr y x] #(+ % num))
+         )
+     )))
 
 
+(def prg1 ["R8" "U5" "L5" "D3"])
+(def prg2 ["U7","R6","D4","L4"])
+
+(comment
+  (-> state
+      (pos 1 8)
+      (m 1 :right 8)
+      (m 1 :up 5)
+      (m 1 :left 5)
+      (m 1 :down 3)
+      (pos 1 8)
+      (m 2 :up 7)
+      (m 2 :right 6)
+      (m 2 :down 4)
+      (m 2 :left 4)
+      (view)
+      ))
