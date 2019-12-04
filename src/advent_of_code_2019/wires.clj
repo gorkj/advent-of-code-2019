@@ -43,8 +43,16 @@
      )))
 
 
-(def prg1 ["R8" "U5" "L5" "D3"])
+(def prg1 ["R8" "U5" "L5" "D3" "R8" "U5" "L5" "D3"])
 (def prg2 ["U7","R6","D4","L4"])
+
+(comment
+  (defn parse [s]
+    [(first s)
+     (Integer/parseInt (str (second s)))])
+  (parse "R8")
+
+  (group-by first (map parse prg1)))
 
 (comment
   (-> state
