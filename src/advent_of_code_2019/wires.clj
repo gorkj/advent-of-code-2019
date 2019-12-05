@@ -1,70 +1,53 @@
 (ns advent-of-code-2019.wires
   (:require [clojure.java.io :as io]
             [clojure.string :as str]
-            [clojure.pprint :refer [pprint]])
-  )
+            [clojure.pprint :refer [pprint]]
+            [clojure.core.matrix :as ccm]))
 
-(def state {:arr (vec (repeat 10 (vec (repeat 11 0))))
-            :x 0
-            :y 0})
+(defn- parse-prg
+  "Splits instructions and converts count to integer"
+  [prgstr]
+  (map #(let [[_ dir cnt-str] %
+              cnt (Integer/parseInt cnt-str)]
+          [dir cnt])
+       (re-seq #"([R|L|U|D])(\d+)" prgstr)
+       ))
 
-(defn pos [state x y]
-  (-> state
-      (assoc :x x)
-      (assoc :y y)))
+(defn- calc-pos
+  "Calculates new position"
+  [[x y] [d c]]
+  (case d
+    "R" [(+ x c) y]
+    "L" [(- x c) y]
+    "U" [x (+ y c)]
+    "D" [x (- y c)]))
 
-(defn view [state]
-  (println)
-  (let [arr (:arr state)
-        xpos (:x state)
-        ypos (:y state)]
-    (doseq [[y row] (map-indexed vector arr)]
-      (doseq [[x value] (map-indexed vector row)]
-        (let [c (if (and (= x xpos) (= y ypos)) "X"
-                    (if (zero? value) "." value))]
-          (print (str c " ")))
-        )
-      (println))))
+(defn- calc-positions
+  "Calculates all the new positions given a seq of movements"
+  [prg]
+  (reductions calc-pos [0 0] prg))
 
-(defn m
-  ([state num dir cnt]
-   (if (zero? cnt)
-     state
-     (recur (m state num dir) num dir (dec cnt))))
-  ([state num dir]
-   (let [{:keys [x y]} state]
-     (-> (case dir
-           :up (assoc state :y (dec y))
-           :right (assoc state :x (inc x))
-           :down (assoc state :y (inc y))
-           :left (assoc state :x (dec x)))
-         (update-in [:arr y x] #(+ % num))
-         )
-     )))
-
-
-(def prg1 ["R8" "U5" "L5" "D3" "R8" "U5" "L5" "D3"])
-(def prg2 ["U7","R6","D4","L4"])
+(defn- calc-borders
+  "Finds the borders of a bonding rectangle given all the positions"
+  [positions]
+  [(apply min (map first positions))
+   (apply max (map first positions))
+   (apply min (map second positions))
+   (apply max (map second positions))])
 
 (comment
-  (defn parse [s]
-    [(first s)
-     (Integer/parseInt (str (second s)))])
-  (parse "R8")
+  (def prgstr "R8,U5,L5,D3")
+  (def prgstr "U7,R6,D4,L4")
+  (def prgstr (first (line-seq (io/reader (io/resource "day-3")))))
 
-  (group-by first (map parse prg1)))
+  (def d (let [steps (parse-prg prgstr)
+               positions (calc-positions steps)
+               [xmin xmax ymin ymax] (calc-borders positions)]
+           {:steps steps
+            :positions positions
+            :bbox [xmin xmax ymin ymax]}))
 
-(comment
-  (-> state
-      (pos 1 8)
-      (m 1 :right 8)
-      (m 1 :up 5)
-      (m 1 :left 5)
-      (m 1 :down 3)
-      (pos 1 8)
-      (m 2 :up 7)
-      (m 2 :right 6)
-      (m 2 :down 4)
-      (m 2 :left 4)
-      (view)
-      ))
+  (let [[xmin xmax ymin ymax] (:bbox d)
+        width (+ (Math/abs xmin) (Math/abs xmax))
+        height (+ (Math/abs ymin) (Math/abs ymax))]
+    [width height]))
