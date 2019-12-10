@@ -13,19 +13,21 @@
        (re-seq #"([R|L|U|D])(\d+)" prgstr)
        ))
 
-(defn- calc-pos
-  "Calculates new position"
-  [[x y] [d c]]
-  (case d
-    "R" [(+ x c) y]
-    "L" [(- x c) y]
-    "U" [x (+ y c)]
-    "D" [x (- y c)]))
-
 (defn- calc-positions
+  "Calculates new positions"
+  [prev [d c]]
+  (let [[x y] (last prev)]
+    (concat (drop-last prev)
+            (case d
+              "R" (for [i (range x (+ x c 1))] [i y])
+              "L" (for [i (range x (- x c 1) -1)] [i y])
+              "U" (for [j (range y (+ y c 1))] [x j])
+              "D" (for [j (range y (- y c 1) -1)] [x j])))))
+
+(defn- calc-all-positions
   "Calculates all the new positions given a seq of movements"
   [prg]
-  (reductions calc-pos [0 0] prg))
+  (reduce calc-positions [[0 0]] prg))
 
 (defn- calc-borders
   "Finds the borders of a bonding rectangle given all the positions"
@@ -35,19 +37,21 @@
    (apply min (map second positions))
    (apply max (map second positions))])
 
-(comment
-  (def prgstr "R8,U5,L5,D3")
-  (def prgstr "U7,R6,D4,L4")
-  (def prgstr (first (line-seq (io/reader (io/resource "day-3")))))
+(defn- dist
+  [[a b]]
+  (+ (Math/abs a) (Math/abs b)))
 
-  (def d (let [steps (parse-prg prgstr)
-               positions (calc-positions steps)
-               [xmin xmax ymin ymax] (calc-borders positions)]
-           {:steps steps
-            :positions positions
-            :bbox [xmin xmax ymin ymax]}))
+(defn manhattan-distance [w1prg w2prg]
+  (apply min
+         (filter #(not (= 0 %)) ; origin is not valid
+                 (map dist
+                      (let [wire1 (into #{} (calc-all-positions (parse-prg w1prg)))
+                            wire2 (into #{} (calc-all-positions (parse-prg w2prg)))]
+                        (clojure.set/intersection wire1 wire2))))))
 
-  (let [[xmin xmax ymin ymax] (:bbox d)
-        width (+ (Math/abs xmin) (Math/abs xmax))
-        height (+ (Math/abs ymin) (Math/abs ymax))]
-    [width height]))
+
+#_(let [lines (line-seq (io/reader (io/resource "day-3")))
+      w1prg (first lines)
+      w2prg (second lines)]
+  (manhattan-distance w1prg w2prg))
+
