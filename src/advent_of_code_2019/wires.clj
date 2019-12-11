@@ -29,14 +29,6 @@
   [prg]
   (reduce calc-positions [[0 0]] prg))
 
-(defn- calc-borders
-  "Finds the borders of a bonding rectangle given all the positions"
-  [positions]
-  [(apply min (map first positions))
-   (apply max (map first positions))
-   (apply min (map second positions))
-   (apply max (map second positions))])
-
 (defn- dist
   [[a b]]
   (+ (Math/abs a) (Math/abs b)))
@@ -49,6 +41,54 @@
                             wire2 (into #{} (calc-all-positions (parse-prg w2prg)))]
                         (clojure.set/intersection wire1 wire2))))))
 
+
+(defn- calc-positions-with-count
+  "Calculates new positions"
+  [prev [direction steps]]
+  (let [[x y c] (last prev)
+        c2 (atom (dec c))]
+    (concat (drop-last prev)
+            (case direction
+              "R" (for [i (range x (+ x steps 1))] [i y (swap! c2 inc)])
+              "L" (for [i (range x (- x steps 1) -1)] [i y (swap! c2 inc)])
+              "U" (for [j (range y (+ y steps 1))] [x j (swap! c2 inc)])
+              "D" (for [j (range y (- y steps 1) -1)] [x j (swap! c2 inc)])))))
+
+(defn- calc-all-positions-with-count
+  "Calculates all the new positions given a seq of movements"
+  [prg]
+  (reduce calc-positions-with-count [[0 0 0]] prg))
+
+(defn not-origin-point?
+  [[x y c]]
+  (and (not= x 0) (not= y 0)))
+
+;; points gets merged since both wires have the same count
+(defn fewest-steps
+  [w1prg w2prg]
+  (let [wire1 (into #{} (calc-all-positions-with-count (parse-prg w1prg)))
+        wire2 (into #{} (calc-all-positions-with-count (parse-prg w2prg)))]
+    (filter not-origin-point? (clojure.set/intersection wire1 wire2))
+    )
+  )
+(defn fewest-steps-2
+  [w1prg w2prg]
+  (let [wire1 (calc-all-positions-with-count (parse-prg w1prg))
+        wire2 (calc-all-positions-with-count (parse-prg w2prg))]
+    #_(filter not-origin-point? (clojure.set/intersection wire1 wire2))
+    [wire1 wire2]
+    )
+  )
+
+
+(fewest-steps "R8,U5,L5,D3" "U7,R6,D4,L4")
+
+
+(calc-positions-with-count [[0 0 0]] ["R" 3])
+
+(reduce calc-positions-with-count [[0 0 0]] (parse-prg "R8,U5,L5,D3"))
+
+;;"U7,R6,D4,L4"
 
 #_(let [lines (line-seq (io/reader (io/resource "day-3")))
       w1prg (first lines)
