@@ -60,10 +60,9 @@
   (reduce calc-positions-with-count [[0 0 0]] prg))
 
 (defn not-origin-point?
-  [[x y c]]
+  [[x y]]
   (and (not= x 0) (not= y 0)))
 
-;; points gets merged since both wires have the same count
 (defn fewest-steps
   [w1prg w2prg]
   (let [wire1 (into #{} (calc-all-positions-with-count (parse-prg w1prg)))
@@ -74,14 +73,24 @@
 (defn fewest-steps-2
   [w1prg w2prg]
   (let [wire1 (calc-all-positions-with-count (parse-prg w1prg))
-        wire2 (calc-all-positions-with-count (parse-prg w2prg))]
-    #_(filter not-origin-point? (clojure.set/intersection wire1 wire2))
-    [wire1 wire2]
+        wire2 (calc-all-positions-with-count (parse-prg w2prg))
+        intersections (filter not-origin-point? (clojure.set/intersection
+                                                 (into #{} (map drop-last wire1))
+                                                 (into #{} (map drop-last wire2))))
+        ]
+    ;;[wire1 wire2]
+    intersections
     )
   )
 
+(comment
+  (fewest-steps-2 "R8,U5,L5,D3"
+                  "U7,R6,D4,L4")
 
-(fewest-steps "R8,U5,L5,D3" "U7,R6,D4,L4")
+  (fewest-steps-2 "R75,D30,R83,U83,L12,D49,R71,U7,L72"
+                  "U62,R66,U55,R34,D71,R55,D58,R83") ;; 610 steps
+  (fewest-steps-2 "R98,U47,R26,D63,R33,U87,L62,D20,R33,U53,R51"
+                  "U98,R91,D20,R16,D67,R40,U7,R15,U6,R7")) ;; 410 steps
 
 
 (calc-positions-with-count [[0 0 0]] ["R" 3])
