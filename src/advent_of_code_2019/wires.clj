@@ -2,9 +2,10 @@
   (:require [clojure.java.io :as io]
             [clojure.string :as str]
             [clojure.pprint :refer [pprint]]
-            [clojure.core.matrix :as ccm]))
+            [clojure.core.matrix :as ccm]
+            [taoensso.tufte :as tufte :refer [defnp p profiled profile]]))
 
-(defn- parse-prg
+(defnp parse-prg
   "Splits instructions and converts count to integer"
   [prgstr]
   (map #(let [[_ dir cnt-str] %
@@ -33,7 +34,7 @@
   [[a b]]
   (+ (Math/abs a) (Math/abs b)))
 
-(defn manhattan-distance [w1prg w2prg]
+(defn- manhattan-distance [w1prg w2prg]
   (apply min
          (filter #(not (= 0 %)) ; origin is not valid
                  (map dist
@@ -42,7 +43,7 @@
                         (clojure.set/intersection wire1 wire2))))))
 
 
-(defn- calc-positions-with-count
+(defnp calc-positions-with-count
   "Calculates new positions"
   [prev [direction steps]]
   (let [[x y c] (last prev)
@@ -54,47 +55,57 @@
               "U" (for [j (range y (+ y steps 1))] [x j (swap! c2 inc)])
               "D" (for [j (range y (- y steps 1) -1)] [x j (swap! c2 inc)])))))
 
-(defn- calc-all-positions-with-count
+(defnp calc-all-positions-with-count
   "Calculates all the new positions given a seq of movements"
   [prg]
   (reduce calc-positions-with-count [[0 0 0]] prg))
 
-(defn not-origin-point?
+(defnp not-origin-point?
   [[x y]]
   (and (not= x 0) (not= y 0)))
 
-(defn- matching-pos?
-  [[a b] [c d e]]
+(defnp matching-pos?
+  [[a b] [c d _]]
   (and (= a c) (= b d)))
 
-(defn- sum-count
+(defnp sum-count
   [[a b c] [_ _ d]]
   [a b (+ c d)])
 
-(defn fewest-steps
+(defnp least-steps
+  [[a b c] [_ _ d]]
+  [a b (min c d)])
+
+(defnp calc-intersections
+  [w1positions w2positions]
+  (filter not-origin-point?
+          (clojure.set/intersection (into #{} (map drop-last w1positions))
+                                    (into #{} (map drop-last w2positions)))))
+
+(defnp fewest-steps
   [w1prg w2prg]
   (let [wire1 (calc-all-positions-with-count (parse-prg w1prg))
         wire2 (calc-all-positions-with-count (parse-prg w2prg))
-        intersections (filterv not-origin-point? (clojure.set/intersection
-                                                 (into #{} (map drop-last wire1))
-                                                 (into #{} (map drop-last wire2))))]
-    (for [pos intersections
-          w1pos wire1
-          w2pos wire2
-          :when (and (matching-pos? pos w1pos) (matching-pos? pos w2pos))]
-      (reduce sum-count [w1pos w2pos]))))
+        intersections (calc-intersections wire1 wire2)]
+    (reduce least-steps
+            (map #(reduce sum-count %)
+                 (vals (group-by (juxt first second)
+                                 (for [intersection intersections
+                                       pos (concat wire1 wire2)
+                                       :when (matching-pos? intersection pos)]
+                                   pos)))))))
 
-(comment)
-(fewest-steps "R8,U5,L5,D3"
-              "U7,R6,D4,L4") ;; 30 steps
-(fewest-steps "R75,D30,R83,U83,L12,D49,R71,U7,L72"
-              "U62,R66,U55,R34,D71,R55,D58,R83") ;; 610 steps
-(fewest-steps "R98,U47,R26,D63,R33,U87,L62,D20,R33,U53,R51"
-              "U98,R91,D20,R16,D67,R40,U7,R15,U6,R7") ;; 410 steps
+(comment
+  (tufte/add-basic-println-handler! {})
+  (profile {} (fewest-steps "R8,U5,L5,D3"
+                            "U7,R6,D4,L4")) ;; 30 steps
 
-(let [lines (line-seq (io/reader (io/resource "day-3")))
-      w1prg (first lines)
-      w2prg (second lines)]
-  #_(manhattan-distance w1prg w2prg)
-  (fewest-steps w1prg w2prg))
+  (profile {} (fewest-steps "R75,D30,R83,U83,L12,D49,R71,U7,L72"
+                            "U62,R66,U55,R34,D71,R55,D58,R83")) ;; 610 steps
+  (profile {} (fewest-steps "R98,U47,R26,D63,R33,U87,L62,D20,R33,U53,R51"
+                            "U98,R91,D20,R16,D67,R40,U7,R15,U6,R7")) ;; 410 steps
 
+  (profile {} (let [lines (line-seq (io/reader (io/resource "day-3")))
+                    w1prg (first lines)
+                    w2prg (second lines)]
+                (fewest-steps w1prg w2prg))))
