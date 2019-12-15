@@ -63,44 +63,38 @@
   [[x y]]
   (and (not= x 0) (not= y 0)))
 
+(defn- matching-pos?
+  [[a b] [c d e]]
+  (and (= a c) (= b d)))
+
+(defn- sum-count
+  [[a b c] [_ _ d]]
+  [a b (+ c d)])
+
 (defn fewest-steps
-  [w1prg w2prg]
-  (let [wire1 (into #{} (calc-all-positions-with-count (parse-prg w1prg)))
-        wire2 (into #{} (calc-all-positions-with-count (parse-prg w2prg)))]
-    (filter not-origin-point? (clojure.set/intersection wire1 wire2))
-    )
-  )
-(defn fewest-steps-2
   [w1prg w2prg]
   (let [wire1 (calc-all-positions-with-count (parse-prg w1prg))
         wire2 (calc-all-positions-with-count (parse-prg w2prg))
-        intersections (filter not-origin-point? (clojure.set/intersection
+        intersections (filterv not-origin-point? (clojure.set/intersection
                                                  (into #{} (map drop-last wire1))
-                                                 (into #{} (map drop-last wire2))))
-        ]
-    ;;[wire1 wire2]
-    intersections
-    )
-  )
+                                                 (into #{} (map drop-last wire2))))]
+    (for [pos intersections
+          w1pos wire1
+          w2pos wire2
+          :when (and (matching-pos? pos w1pos) (matching-pos? pos w2pos))]
+      (reduce sum-count [w1pos w2pos]))))
 
-(comment
-  (fewest-steps-2 "R8,U5,L5,D3"
-                  "U7,R6,D4,L4")
+(comment)
+(fewest-steps "R8,U5,L5,D3"
+              "U7,R6,D4,L4") ;; 30 steps
+(fewest-steps "R75,D30,R83,U83,L12,D49,R71,U7,L72"
+              "U62,R66,U55,R34,D71,R55,D58,R83") ;; 610 steps
+(fewest-steps "R98,U47,R26,D63,R33,U87,L62,D20,R33,U53,R51"
+              "U98,R91,D20,R16,D67,R40,U7,R15,U6,R7") ;; 410 steps
 
-  (fewest-steps-2 "R75,D30,R83,U83,L12,D49,R71,U7,L72"
-                  "U62,R66,U55,R34,D71,R55,D58,R83") ;; 610 steps
-  (fewest-steps-2 "R98,U47,R26,D63,R33,U87,L62,D20,R33,U53,R51"
-                  "U98,R91,D20,R16,D67,R40,U7,R15,U6,R7")) ;; 410 steps
-
-
-(calc-positions-with-count [[0 0 0]] ["R" 3])
-
-(reduce calc-positions-with-count [[0 0 0]] (parse-prg "R8,U5,L5,D3"))
-
-;;"U7,R6,D4,L4"
-
-#_(let [lines (line-seq (io/reader (io/resource "day-3")))
+(let [lines (line-seq (io/reader (io/resource "day-3")))
       w1prg (first lines)
       w2prg (second lines)]
-  (manhattan-distance w1prg w2prg))
+  #_(manhattan-distance w1prg w2prg)
+  (fewest-steps w1prg w2prg))
 
