@@ -9,6 +9,8 @@
   (mapv #(Integer/parseInt %)
         (str/split (slurp (io/resource "day-5")) #"," )))
 
+(declare intcomp)
+
 (defn- add [index memory]
   (let [[op a b loc] (drop index memory)]
     (intcomp (+ index 4)
@@ -29,8 +31,6 @@
     (println (get memory loc))
     (intcomp (+ index 2) memory)))
 
-(digits 1001)
-
 (defn- read-op
   [number]
   (let [[m3 m2 m1 & op] (format "%05d" number)]
@@ -40,8 +40,6 @@
      (if (= \0 m3) :pos :imm)]
     )
   )
-
-(read-op 1001)
 
 (defn intcomp
   ([memory]
@@ -54,10 +52,12 @@
      4 (output index memory)
      99 memory)))
 
-(digits 1002)
-(intcomp [3 0 4 0 99])
+(comment
+  (digits 1002)
+  (intcomp [3 0 4 0 99])
+  (read-op 1001)
 
-(take 20 (get-int-program))
+  (take 20 (get-int-program)))
 
 (deftest day-2a-test
   (testing "Running programs"
