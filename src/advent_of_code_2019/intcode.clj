@@ -11,58 +11,65 @@
 
 (declare intcomp)
 
+(defn- get-param [mode value memory]
+  (if (= :position mode) (nth memory value) value))
+
+(defn- get-address [mode value memory]
+  (if (= :immediate mode) (nth memory value) value))
+
 (defn- add [index memory]
-  (let [[op a b loc] (drop index memory)]
+  (let [[op-and-modes a b loc] (drop index memory)
+        [op m1 m2 m3] (read-op op-and-modes)]
     (intcomp (+ index 4)
-             (assoc memory loc (+ (nth memory a) (nth memory b))))))
+             (assoc memory
+                    (get-address m3 loc memory)
+                    (+ (get-param m1 a memory)
+                       (get-param m2 b memory))))))
 
 (defn- mul [index memory]
-  (let [[op a b loc] (drop index memory)]
+  (let [[op-and-modes a b loc] (drop index memory)
+        [op m1 m2 m3] (read-op op-and-modes)]
     (intcomp (+ index 4)
-             (assoc memory loc (* (nth memory a) (nth memory b))))))
+             (assoc memory
+                    (get-address m3 loc memory)
+                    (* (get-param m1 a memory)
+                       (get-param m2 b memory))))))
 
 (defn- input [index memory]
-  (let [[op loc] (drop index memory)]
+  (let [[op-and-modes loc] (drop index memory)
+        [op m1] (read-op op-and-modes)]
     (intcomp (+ index 2)
-             (assoc memory loc (edn/read-string (read-line))))))
+             (assoc memory
+                    (get-address m1 loc memory)
+                    (edn/read-string (read-line))))))
 
 (defn- output [index memory]
-  (let [[op loc] (drop index memory)]
-    (println (get memory loc))
+  (let [[op-and-modes loc] (drop index memory)
+        [op m1] (read-op op-and-modes)]
+    (println (get memory (get-address m1 loc memory)))
     (intcomp (+ index 2) memory)))
 
 (defn- read-op
   [number]
   (let [[m3 m2 m1 & op] (format "%05d" number)]
     [(Integer/parseInt (apply str op))
-     (if (= \0 m1) :pos :imm)
-     (if (= \0 m2) :pos :imm)
-     (if (= \0 m3) :pos :imm)]
-    )
-  )
+     (if (= \0 m1) :position :immediate)
+     (if (= \0 m2) :position :immediate)
+     (if (= \0 m3) :position :immediate)]))
 
 (defn intcomp
   ([memory]
    (intcomp 0 memory))
   ([index memory]
-   (case (get memory index)
-     1 (add index memory)
-     2 (mul index memory)
-     3 (input index memory)
-     4 (output index memory)
-     99 memory)))
+   (let [[op] (read-op (get memory index))]
+     (case op
+       1 (add index memory)
+       2 (mul index memory)
+       3 (input index memory)
+       4 (output index memory)
+       99 memory))))
 
 (comment
-  (digits 1002)
-  (intcomp [3 0 4 0 99])
-  (read-op 1001)
+  (intcomp [1002 4 3 4 33])
+  (intcomp (get-int-program)))
 
-  (take 20 (get-int-program)))
-
-(deftest day-2a-test
-  (testing "Running programs"
-    (is (= (intcomp [1,9,10,3,2,3,11,0,99,30,40,50]) [3500,9,10,70,2,3,11,0,99,30,40,50]))
-    (is (= (intcomp [1,0,0,0,99])  [2,0,0,0,99]))
-    (is (= (intcomp [2,3,0,3,99]) [2,3,0,6,99]))
-    (is (= (intcomp [2,4,4,5,99,0]) [2,4,4,5,99,9801]))
-    (is (= (intcomp [1,1,1,4,99,5,6,0,99]) [30,1,1,4,2,5,6,0,99]))))
