@@ -6,7 +6,9 @@
   :dependencies [[org.clojure/clojure "1.10.0"]
                  [net.mikera/core.matrix "0.62.0"]
                  [net.mikera/vectorz-clj "0.48.0"]
-                 [com.taoensso/tufte "2.1.0"]]
+                 [com.taoensso/timbre "4.10.0"]
+                 [com.taoensso/tufte "2.1.0"]
+                 [com.taoensso/truss "1.5.0"]]
   :main ^:skip-aot advent-of-code-2019.core
   :target-path "target/%s"
   :profiles {:uberjar {:aot :all}})

@@ -2,6 +2,8 @@
   (:require [clojure.string :as str]
             [clojure.java.io :as io]
             [clojure.tools.reader.edn :as edn]
+            [taoensso.timbre :refer [spy info]]
+            [taoensso.truss :refer [have]]
             [advent-of-code-2019.misc :refer [digits]]))
 
 (defn get-int-program []
@@ -53,8 +55,9 @@
                   address
                   (edn/read-string (read-line)))))
 
-(defn- output [address index memory]
-  (println (get memory address))
+(defn- output [params index memory]
+  ;;(info "output" (first params) index)
+  (println (first params))
   (intcomp (+ index 2) memory))
 
 (defn- jump-if-true [params index memory]
@@ -85,11 +88,12 @@
    (intcomp 0 memory))
   ([index memory]
    (let [[op params address] (read-op index memory)]
+     ;;(info op params address)
      (case op
        1 (add params address index memory)
        2 (mul params address index memory)
        3 (input address index memory)
-       4 (output address index memory)
+       4 (output params index memory)
        5 (jump-if-true params index memory)
        6 (jump-if-false params index memory)
        7 (less-than params address index memory)
