@@ -2,14 +2,15 @@
   (:require [clojure.string :as str]
             [clojure.java.io :as io]
             [clojure.tools.reader.edn :as edn]
+            [clojure.math.combinatorics :as comb]
             [taoensso.timbre :refer [spy info]]
             [taoensso.truss :refer [have]]
             [advent-of-code-2019.misc :refer [digits]]
             [clojure.test :refer [deftest testing is]]))
 
-(defn get-int-program []
+(defn get-int-program [name]
   (mapv #(Integer/parseInt %)
-        (str/split (slurp (io/resource "day-5")) #"," )))
+        (str/split (slurp (io/resource name)) #"," )))
 
 (declare intcomp-int)
 
@@ -145,10 +146,34 @@
       (is (= 1000 (intcomp [8] prg )))
       (is (= 1001 (intcomp [9] prg ))))))
 
-(let [prg [3,15,3,16,1002,16,10,16,1,16,15,15,4,15,99,0,0]
-      phases [4 3 2 1 0]]
-  (map #(intcomp % prg))
-  )
-;; 43210
+(defn calc-amplification
+  [phases prg]
+  (loop [p phases
+         in 0]
+    (if (empty? p)
+      in
+      (recur (rest p) (intcomp [(first p) in] prg)))))
+
+(defn calc-max-settings
+  [prg]
+  (apply max-key
+         second
+         (map #(list % (calc-amplification % prg)) (comb/permutations (range 5)))))
+
+(deftest serial-amplification
+  (testing "single permutation"
+    (is (= 43210 (calc-amplification [4 3 2 1 0] [3,15,3,16,1002,16,10,16,1,16,15,15,4,15,99,0,0])))
+    (is (= 54321 (calc-amplification [0,1,2,3,4] [3,23,3,24,1002,24,10,24,1002,23,-1,23,
+                                                  101,5,23,23,1,24,23,23,4,23,99,0,0])))
+    (is (= 65210 (calc-amplification [1,0,4,3,2] [3,31,3,32,1002,32,10,32,1001,31,-2,31,1007,31,0,33,
+                                                  1002,33,7,33,1,33,31,31,1,32,31,31,4,31,99,0,0,0]))))
+  (testing "find-max-phase-settings"
+    (is (= [[4 3 2 1 0] 43210] (calc-max-settings [3,15,3,16,1002,16,10,16,1,16,15,15,4,15,99,0,0])))
+    (is (= [[0,1,2,3,4] 54321] (calc-max-settings  [3,23,3,24,1002,24,10,24,1002,23,-1,23,
+                                                    101,5,23,23,1,24,23,23,4,23,99,0,0])))
+    (is (= [[1,0,4,3,2] 65210] (calc-max-settings  [3,31,3,32,1002,32,10,32,1001,31,-2,31,1007,31,0,33,
+                                                    1002,33,7,33,1,33,31,31,1,32,31,31,4,31,99,0,0,0])))))
 
 
+;;(calc-max-settings (get-int-program "amp-program"))
+;; => ([1 3 2 4 0] 34852)
