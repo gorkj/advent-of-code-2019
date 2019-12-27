@@ -8,7 +8,8 @@
                  [net.mikera/vectorz-clj "0.48.0"]
                  [com.taoensso/timbre "4.10.0"]
                  [com.taoensso/tufte "2.1.0"]
-                 [com.taoensso/truss "1.5.0"]]
+                 [com.taoensso/truss "1.5.0"]
+                 [aysylu/loom "1.0.2"]]
   :main ^:skip-aot advent-of-code-2019.core
   :target-path "target/%s"
   :profiles {:uberjar {:aot :all}})
