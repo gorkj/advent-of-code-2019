@@ -34,7 +34,7 @@
   [[a b]]
   (+ (Math/abs a) (Math/abs b)))
 
-(defn- manhattan-distance [w1prg w2prg]
+(defn manhattan-distance [w1prg w2prg]
   (apply min
          (filter #(not (= 0 %)) ; origin is not valid
                  (map dist

@@ -4,7 +4,7 @@
             [clojure.tools.reader.edn :as edn]
             [clojure.math.combinatorics :as comb]
             [taoensso.timbre :refer [spy info]]
-            [taoensso.truss :refer [have]]
+            [taoensso.truss :refer [have have? have!]]
             [advent-of-code-2019.misc :refer [digits]]
             [clojure.test :refer [deftest testing is]]))
 
@@ -16,7 +16,7 @@
 
 (defn- parse-modes
   [number]
-  (let [[m3 m2 m1 & op] (format "%05d" number)]
+  (let [[m3 m2 m1 & op] (format "%05d" (have pos? number))]
     [(Integer/parseInt (apply str op))
      (if (= \0 m1) :position :immediate)
      (if (= \0 m2) :position :immediate)
@@ -37,19 +37,23 @@
         [_ & params-raw] (take (oplen op) prg)
         params (map #(read-param %1 %2 memory) params-raw modes)
         address (last params-raw)]
+    (have pos-int? op)
+    (have #(not-any? nil? %) params)
     [op params address]))
 
 (defn- add [in out params address index memory]
   (intcomp-int in out (+ index 4)
            (assoc memory
                   address
-                  (+ (first params) (second params)))))
+                  (+ (have number? (first params))
+                     (have number? (second params))))))
 
 (defn- mul [in out params address index memory]
   (intcomp-int in out (+ index 4)
            (assoc memory
                   address
-                  (* (first params) (second params)))))
+                  (* (have number? (first params) :data params)
+                     (have number? (second params) :data params)))))
 
 (defn- input [in out address index memory]
   (intcomp-int (rest in) out (+ index 2)
@@ -109,42 +113,8 @@
     (intcomp-int in out memory)
     (first @out)))
 
-(deftest intcomp-with-automatic-io
-  (testing "compare to eight"
-    (testing "position mode"
-      (let [prg [3,9,8,9,10,9,4,9,99,-1,8]]
-        (is (= 0 (intcomp [7] prg)))
-        (is (= 1 (intcomp [8] prg)))
-        (is (= 0 (intcomp [9] prg))))
-      (let [prg [3,9,7,9,10,9,4,9,99,-1,8]]
-        (is (= 1 (intcomp [7] prg)))
-        (is (= 0 (intcomp [8] prg)))))
-    (testing "immediate mode"
-      (let [prg [3,3,1108,-1,8,3,4,3,99]]
-        (is (= 0 (intcomp [7] prg)))
-        (is (= 1 (intcomp [8] prg)))
-        (is (= 0 (intcomp [9] prg))))
-      (let [prg [3,3,1107,-1,8,3,4,3,99]]
-        (is (= 1 (intcomp [7] prg)))
-        (is (= 0 (intcomp [8] prg))))))
-  (testing "zero or not"
-    (let [prg [3,12,6,12,15,1,13,14,13,4,13,99,-1,0,1,9]]
-      (is (= 0 (intcomp [0] prg)))
-      (is (= 1 (intcomp [1] prg)))
-      (is (= 1 (intcomp [42] prg))))
-    (let [prg [3,3,1105,-1,9,1101,0,0,12,4,12,99,1]]
-      (is (= 0 (intcomp [0] prg)))
-      (is (= 1 (intcomp [1] prg)))
-      (is (= 1 (intcomp [42] prg))))
-    ))
-
-(deftest jumping
-  (testing "Jump program"
-    (let [prg [3 21,1008 21 8 20,1005 20 22,107 8 21 20,1006 20 31,1106 0 36,98 0 0,1002 21 125 20,
-               4 20,1105 1 46,104 999,1105 1 46,1101 1000 1 20,4 20,1105 1 46 98,99]]
-      (is (= 999 (intcomp [7] prg )))
-      (is (= 1000 (intcomp [8] prg )))
-      (is (= 1001 (intcomp [9] prg ))))))
+#_(intcomp [9] [3,26,1001,26,-4,26,3,27,1002,27,2,27,1,27,26,
+              27,4,27,1001,28,-1,28,1005,28,6,99,0,0,5])
 
 (defn calc-amplification
   [phases prg]
@@ -160,20 +130,27 @@
          second
          (map #(list % (calc-amplification % prg)) (comb/permutations (range 5)))))
 
-(deftest serial-amplification
-  (testing "single permutation"
-    (is (= 43210 (calc-amplification [4 3 2 1 0] [3,15,3,16,1002,16,10,16,1,16,15,15,4,15,99,0,0])))
-    (is (= 54321 (calc-amplification [0,1,2,3,4] [3,23,3,24,1002,24,10,24,1002,23,-1,23,
-                                                  101,5,23,23,1,24,23,23,4,23,99,0,0])))
-    (is (= 65210 (calc-amplification [1,0,4,3,2] [3,31,3,32,1002,32,10,32,1001,31,-2,31,1007,31,0,33,
-                                                  1002,33,7,33,1,33,31,31,1,32,31,31,4,31,99,0,0,0]))))
-  (testing "find-max-phase-settings"
-    (is (= [[4 3 2 1 0] 43210] (calc-max-settings [3,15,3,16,1002,16,10,16,1,16,15,15,4,15,99,0,0])))
-    (is (= [[0,1,2,3,4] 54321] (calc-max-settings  [3,23,3,24,1002,24,10,24,1002,23,-1,23,
-                                                    101,5,23,23,1,24,23,23,4,23,99,0,0])))
-    (is (= [[1,0,4,3,2] 65210] (calc-max-settings  [3,31,3,32,1002,32,10,32,1001,31,-2,31,1007,31,0,33,
-                                                    1002,33,7,33,1,33,31,31,1,32,31,31,4,31,99,0,0,0])))))
+(defn calc-feedback-amplification
+  [phases prg]
+  nil
+  )
 
+;;(comb/permutations (range 5 10))
+
+
+
+#_(calc-amplification [9,8,7,6,5] [3,26,1001,26,-4,26,3,27,1002,27,2,27,1,27,26,
+                                 27,4,27,1001,28,-1,28,1005,28,6,99,0,0,5])
+
+
+(deftest feedback-loop-amplification
+  (testing "small"
+    (is (= 139629729 (calc-feedback-amplification [9,8,7,6,5] [3,26,1001,26,-4,26,3,27,1002,27,2,27,1,27,26,
+                                                               27,4,27,1001,28,-1,28,1005,28,6,99,0,0,5])))
+    (is (= 18216 (calc-feedback-amplification [9,7,8,5,6] [3,52,1001,52,-5,52,3,53,1,52,56,54,1007,54,5,55,1005,55,26,1001,54,
+                                                           -5,54,1105,1,12,1,53,54,53,1008,54,0,55,1001,55,1,55,2,53,55,53,4,
+                                                           53,1001,56,-1,56,1005,56,6,99,0,0,0,0,10])))
+    ))
 
 ;;(calc-max-settings (get-int-program "amp-program"))
 ;; => ([1 3 2 4 0] 34852)
